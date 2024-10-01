@@ -115,7 +115,7 @@ df_updated = df_updated[~((df_updated.iloc[:, 4] == 0) | (df_updated.iloc[:, 4].
 # Берем данные из столбца D только из строк 3, 6, 9 и т.д.
 rows_to_extract = range(1, len(df_final_filtered_table), 3)  # 3-я строка — это индекс 2
 rows_to_extract1 = range(2, len(df_final_filtered_table), 3)  # 3-я строка — это индекс 2
-values_to_add = df_final_filtered_table.iloc[rows_to_extract, 3].values  + df_final_filtered_table.iloc[rows_to_extract1, 3].values 
+values_to_add = df_final_filtered_table.iloc[rows_to_extract, 3].values
 values_to_add1 = df_final_filtered_table.iloc[rows_to_extract1, 11].values  # Столбец L — это индекс 11
 values_to_add2 = df_final_filtered_table.iloc[rows_to_extract1, 10].values  # Столбец K — это индекс 10
 # Найдем текущее количество строк в df_updated
@@ -177,11 +177,19 @@ for i in range(len(df_updated)):
         df_updated.iloc[i, 1] = 'Заготовительный цех'
     elif 'Распил на ленточной пиле косой рез' in cell_value:
         df_updated.iloc[i, 1] = 'Заготовительный цех'
+    elif 'Резка листа ПВЛ' in cell_value:
+        df_updated.iloc[i, 1] = 'Заготовительный цех'
+    elif 'Резка трубок ПВХ' in cell_value:
+        df_updated.iloc[i, 1] = 'Заготовительный цех'
+    elif 'Фрезеровка' in cell_value:
+        df_updated.iloc[i, 1] = 'Заготовительный цех'
     elif 'Сверление' in cell_value:
         df_updated.iloc[i, 1] = 'Заготовительный цех'
     elif 'Гибка труб' in cell_value:
         df_updated.iloc[i, 1] = 'Заготовительный цех'
     elif 'Наклейка' in cell_value:
+        df_updated.iloc[i, 1] = 'Сборочно-упаковочный цех'
+    elif 'Маркировка' in cell_value:
         df_updated.iloc[i, 1] = 'Сборочно-упаковочный цех'
     elif 'Погрузочно-разгрузочные работы' in cell_value:
         df_updated.iloc[i, 1] = 'Сборочно-упаковочный цех'
@@ -194,6 +202,43 @@ for i in range(len(df_updated)):
 # Заполнение пустых строк в столбце I нулями
 df_updated.iloc[:, 8] = df_updated.iloc[:, 8].fillna(0)
 
+df_filtered = df_updated[df_updated.iloc[:, 1] == 'Сборочно-упаковочный цех']
+
+# # Шаг 2: Если есть строки с "Сборочно-упаковочный цех"
+if not df_filtered.empty:
+    # Выполняем умножение значений в столбцах E и G
+    multiplied_g = df_filtered.apply(lambda row: row[4] * row[6], axis=1)
+    # Выполняем умножение значений в столбцах E и H
+    multiplied_h = df_filtered.apply(lambda row: row[4] * row[7], axis=1)
+    
+    # Суммируем результаты умножения для столбцов G и H
+    sum_g = multiplied_g.sum()  # Итоговая сумма для столбца G (7-й столбец)
+    sum_h = multiplied_h.sum()  # Итоговая сумма для столбца H (8-й столбец)
+
+    # Создаем новую строку с итоговыми значениями
+    final_row = pd.Series([
+        output_file,  # Столбец A (название файла)
+        'Сборочно-упаковочный цех',  # Столбец B
+        'Финальная сборка',  # Столбец C (текст "Финальная сборка")
+        0,  # Столбец D
+        1,  # Столбец E (значение 1)
+        'серия',  # Столбец F
+        sum_g,  # Столбец G (сумма значений)
+        sum_h,  # Столбец H (сумма значений)
+        0,  # Столбец I (оставляем 0)
+        0  # Столбец I (оставляем 0)
+    ], index=df_updated.columns)
+
+    # Шаг 3: Удаляем все строки с "Сборочно-упаковочный цех"
+    df_updated = df_updated[df_updated.iloc[:, 1] != 'Сборочно-упаковочный цех']
+
+    # Шаг 4: Добавляем новую строку в конец таблицы
+    df_updated = df_updated._append(final_row, ignore_index=True)
+
+df = pd.read_excel(input_file, sheet_name='Расчет')
+d2_value = df.iloc[0,3]  # Это значение из ячейки D2
+
+df_updated.iloc[:, 4] = df_updated.iloc[:, 4] * d2_value
 output_file += ' Наряд'
 
 # Сохранение обновленной таблицы в файл
